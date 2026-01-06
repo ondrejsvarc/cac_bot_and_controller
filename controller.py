@@ -1,3 +1,6 @@
+import base64
+import os
+
 import paho.mqtt.client as mqtt
 import json
 import time
@@ -43,6 +46,30 @@ def on_message(client, userdata, msg):
             return
 
         sender = payload.get("sender_id")
+        response_type = payload.get("type")
+
+        if response_type == "log_file":
+            content_str = payload.get("payload")
+            filename = payload.get("file_name")
+            if not filename:
+                ext = ".txt"
+                filename = f"{sender}_{int(time.time())}{ext}"
+
+            if not os.path.exists("received"):
+                os.makedirs("received")
+
+            save_path = os.path.join("received", filename)
+
+            try:
+                file_data = base64.b64decode(content_str)
+
+                with open(save_path, 'wb') as f:
+                    f.write(file_data)
+
+                print(f"File successfully saved to: {save_path}")
+            except Exception as e:
+                print(f"Error: {e}")
+
         print(f"Received message from {sender}:\n{msg.payload.decode()}")
 
     except Exception as e:
@@ -73,6 +100,8 @@ def main():
                 params = None
                 if cmd == "ls":
                     params = input("Path (optional): ")
+                elif cmd == "log":
+                    params = input("Path: ")
 
                 send_command(client, target_id, cmd, params)
 
