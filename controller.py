@@ -101,7 +101,9 @@ def main():
                 if cmd == "ls":
                     params = input("Path (optional): ")
                 elif cmd == "log":
-                    params = input("Path: ")
+                    params = input("Path to file: ")
+                elif cmd == "s_info":
+                    params = input("Path to executable: ")
 
                 send_command(client, target_id, cmd, params)
 

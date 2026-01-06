@@ -1,5 +1,7 @@
 import base64
 import os
+import shutil
+
 import paho.mqtt.client as mqtt
 import json
 import time
@@ -46,6 +48,8 @@ def on_message(client, userdata, msg):
             id(client, sender)
         elif action == "log":
             send_log(client, sender, params if not params == {} else None)
+        elif action == "s_info":
+            sensor_info(client, sender, params if not params == {} else None)
         else:
             print(f"Unknown action: {action}")
 
@@ -163,7 +167,35 @@ def send_log(client, sender, path):
 
             message = json.dumps(response)
             client.publish(TOPIC, message)
-            print(f"Id message: {message}")
+            print(f"Log message: {message}")
+
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+
+
+# --- Run executable ---
+def sensor_info(client, sender, path):
+    if path is None:
+        return
+    try:
+        if not shutil.which(path):
+            print(f"Error: The executable '{path}' was not found or is not executable.")
+
+        # Prepare the command list
+        command = [path]
+        result = subprocess.run(command, capture_output=True, text=True, check=True).stdout.strip()
+
+        response = {
+            "controller_id": sender,
+            "sender_id": SENSOR_ID,
+            "type": "specialized_sensor_info",
+            "payload": result,
+            "timestamp": time.time()
+        }
+
+        message = json.dumps(response)
+        client.publish(TOPIC, message)
+        print(f"Specialized sensor info message: {message}")
 
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
