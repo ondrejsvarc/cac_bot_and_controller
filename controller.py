@@ -20,7 +20,7 @@ def on_connect(client, userdata, flags, rc):
 
 def send_command(client, target_id, action, params=None):
     payload = {
-        "target_id": target_id,
+        "sensor_id": target_id,
         "sender_id": CONTROLLER_ID,
         "action": action,
         "params": params or {},
@@ -38,17 +38,16 @@ def on_message(client, userdata, msg):
         payload = json.loads(msg.payload.decode())
 
         # Message for me?
-        target = payload.get("target_id")
+        target = payload.get("controller_id")
         if target != CONTROLLER_ID:
             return
 
         sender = payload.get("sender_id")
         print(f"Received message from {sender}:\n{msg.payload.decode()}")
 
-    except json.JSONDecodeError:
-        print("Received non-JSON message")
     except Exception as e:
-        print(f"Error processing message: {e}")
+        pass
+        # print(f"Error processing message: {e}")
 
 
 def main():

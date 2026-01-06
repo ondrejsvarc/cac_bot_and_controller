@@ -3,17 +3,18 @@ import json
 import time
 import socket
 import random
+import subprocess
 
 # Configuration
 MQTT_BROKER = "147.32.82.209"
 PORT = 1883
 TOPIC = "sensors"
-BOT_ID = "bot_" + str(random.randint(1, 1000))
+SENSOR_ID = "sensor_" + str(random.randint(1, 1000))
 
 
 def on_connect(client, userdata, flags, rc):
     if rc == 0:
-        print(f"Bot {BOT_ID} connected.")
+        print(f"Sensor {SENSOR_ID} connected.")
         client.subscribe(TOPIC)
     else:
         print(f"Connection failed. Code: {rc}")
@@ -24,8 +25,8 @@ def on_message(client, userdata, msg):
         payload = json.loads(msg.payload.decode())
 
         # Message for me?
-        target = payload.get("target_id")
-        if target != BOT_ID and target != "all":
+        target = payload.get("sensor_id")
+        if target != SENSOR_ID and target != "all":
             return
 
         sender = payload.get("sender_id")
@@ -35,6 +36,8 @@ def on_message(client, userdata, msg):
 
         if action == "announce":
             announce(client, sender)
+        if action == "w":
+            logged_users(client, sender)
         else:
             print(f"Unknown action: {action}")
 
@@ -47,8 +50,8 @@ def on_message(client, userdata, msg):
 # --- Announce ---
 def announce(client, sender):
     response = {
-        "target_id": sender,
-        "sender_id": BOT_ID,
+        "controller_id": sender,
+        "sender_id": SENSOR_ID,
         "type": "presence",
         "status": "online",
         "hostname": socket.gethostname(),
@@ -60,8 +63,28 @@ def announce(client, sender):
     print(f"Announced message: {message}")
 
 
+# --- Logged users ---
+def logged_users(client, sender):
+    try:
+        result = subprocess.run(['w'], capture_output=True, text=True, check=True).stdout.strip()
+
+        response = {
+            "controller_id": sender,
+            "sender_id": SENSOR_ID,
+            "type": "connected_users",
+            "payload": result,
+            "timestamp": time.time()
+        }
+
+        message = json.dumps(response)
+        client.publish(TOPIC, message)
+        print(f"Connected users message: {message}")
+    except Exception as e:
+        return f"An unexpected error occurred: {e}"
+
+
 def main():
-    client = mqtt.Client(client_id=BOT_ID)
+    client = mqtt.Client(client_id=SENSOR_ID)
     client.on_connect = on_connect
     client.on_message = on_message
 
