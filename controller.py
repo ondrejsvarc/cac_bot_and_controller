@@ -70,7 +70,11 @@ def main():
                 send_command(client, "all", "announce")
             else:
                 target_id = input("Target ID: ")
-                send_command(client, target_id, cmd)
+                params = None
+                if cmd == "ls":
+                    params = input("Path (optional): ")
+
+                send_command(client, target_id, cmd, params)
 
         client.loop_stop()
     except KeyboardInterrupt:

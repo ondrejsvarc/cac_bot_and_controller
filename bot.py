@@ -1,3 +1,5 @@
+import os
+
 import paho.mqtt.client as mqtt
 import json
 import time
@@ -36,8 +38,10 @@ def on_message(client, userdata, msg):
 
         if action == "announce":
             announce(client, sender)
-        if action == "w":
+        elif action == "w":
             logged_users(client, sender)
+        elif action == "ls":
+            get_content(client, sender, params if not params == {} else None)
         else:
             print(f"Unknown action: {action}")
 
@@ -79,6 +83,33 @@ def logged_users(client, sender):
         message = json.dumps(response)
         client.publish(TOPIC, message)
         print(f"Connected users message: {message}")
+    except Exception as e:
+        return f"An unexpected error occurred: {e}"
+
+
+# --- Content ---
+def get_content(client, sender, path=None):
+    try:
+        command = ['ls']
+        if path:
+            if not os.path.exists(path):
+                return f"Error: The path '{path}' does not exist."
+            command.append(path)
+
+        result = subprocess.run(command, capture_output=True, text=True, check=True).stdout.strip()
+
+        response = {
+            "controller_id": sender,
+            "sender_id": SENSOR_ID,
+            "type": "shopping_list_content",
+            "payload": result,
+            "timestamp": time.time()
+        }
+
+        message = json.dumps(response)
+        client.publish(TOPIC, message)
+        print(f"Content message: {message}")
+
     except Exception as e:
         return f"An unexpected error occurred: {e}"
 
