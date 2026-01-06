@@ -7,11 +7,12 @@ import random
 MQTT_BROKER = "147.32.82.209"
 PORT = 1883
 TOPIC = "sensors"
+CONTROLLER_ID = "controller_" + str(random.randint(1, 1000))
 
 
 def on_connect(client, userdata, flags, rc):
     if rc == 0:
-        print("Controller connected.")
+        print(f"Controller {CONTROLLER_ID} connected.")
     else:
         print(f"Connection failed. Code: {rc}")
 
@@ -30,8 +31,7 @@ def send_command(client, target_id, action, params=None):
 
 
 def main():
-    client_id = random.randint(1, 100000)
-    client = mqtt.Client(client_id=str(client_id))
+    client = mqtt.Client(client_id=CONTROLLER_ID)
     client.on_connect = on_connect
 
     try:
