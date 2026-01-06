@@ -1,5 +1,4 @@
 import os
-
 import paho.mqtt.client as mqtt
 import json
 import time
@@ -42,6 +41,8 @@ def on_message(client, userdata, msg):
             logged_users(client, sender)
         elif action == "ls":
             get_content(client, sender, params if not params == {} else None)
+        elif action == "id":
+            id(client, sender)
         else:
             print(f"Unknown action: {action}")
 
@@ -57,8 +58,7 @@ def announce(client, sender):
         "controller_id": sender,
         "sender_id": SENSOR_ID,
         "type": "presence",
-        "status": "online",
-        "hostname": socket.gethostname(),
+        "payload": f"{SENSOR_ID} - status: ONLINE, at: {socket.gethostname()}",
         "timestamp": time.time()
     }
 
@@ -70,7 +70,8 @@ def announce(client, sender):
 # --- Logged users ---
 def logged_users(client, sender):
     try:
-        result = subprocess.run(['w'], capture_output=True, text=True, check=True).stdout.strip()
+        command = ['w']
+        result = subprocess.run(command, capture_output=True, text=True, check=True).stdout.strip()
 
         response = {
             "controller_id": sender,
@@ -109,6 +110,28 @@ def get_content(client, sender, path=None):
         message = json.dumps(response)
         client.publish(TOPIC, message)
         print(f"Content message: {message}")
+
+    except Exception as e:
+        return f"An unexpected error occurred: {e}"
+
+
+# --- ID ---
+def id(client, sender):
+    try:
+        command = ['id']
+        result = subprocess.run(command, capture_output=True, text=True, check=True).stdout.strip()
+
+        response = {
+            "controller_id": sender,
+            "sender_id": SENSOR_ID,
+            "type": "ping_with_id",
+            "payload": result,
+            "timestamp": time.time()
+        }
+
+        message = json.dumps(response)
+        client.publish(TOPIC, message)
+        print(f"Connected users message: {message}")
 
     except Exception as e:
         return f"An unexpected error occurred: {e}"
