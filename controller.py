@@ -14,6 +14,10 @@ CONTROLLER_ID = "controller_" + str(random.randint(1, 100))
 
 
 def on_connect(client, userdata, flags, rc):
+    """
+        Callback function triggered when the client connects to the MQTT broker.
+        It checks the result code (rc) and subscribes to the shared topic to receive responses.
+    """
     if rc == 0:
         print(f"Controller {CONTROLLER_ID} connected.")
         client.subscribe(TOPIC)
@@ -22,6 +26,15 @@ def on_connect(client, userdata, flags, rc):
 
 
 def send_command(client, target_id, action, params=None):
+    """
+        Constructs a JSON payload containing the command details and publishes it to the MQTT topic.
+
+        Args:
+            client: The MQTT client instance.
+            target_id (str): The ID of the specific bot or 'all'.
+            action (str): The command to execute (e.g., 'announce', 'ls').
+            params (dict, optional): Additional parameters for the command.
+    """
     payload = {
         "sensor_id": target_id,
         "sender_id": CONTROLLER_ID,
@@ -37,6 +50,11 @@ def send_command(client, target_id, action, params=None):
 
 
 def on_message(client, userdata, msg):
+    """
+        Callback function triggered when a message is received on the subscribed topic.
+        It filters messages intended for this controller and handles specific response types,
+        such as saving downloaded files or printing text output.
+    """
     try:
         payload = json.loads(msg.payload.decode())
 
@@ -78,6 +96,10 @@ def on_message(client, userdata, msg):
 
 
 def main():
+    """
+        Main function to initialize the MQTT client, connect to the broker,
+        and run the interactive command loop for user input.
+    """
     client = mqtt.Client(client_id=CONTROLLER_ID)
     client.on_connect = on_connect
     client.on_message = on_message
